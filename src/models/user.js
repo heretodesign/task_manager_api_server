@@ -20,16 +20,18 @@ const userSchema = new mongoose.Schema({
     },
     age: {
         type: Number,
+        default: 0,
         validate(value) {
             if (value < 0) {
                 throw new Error("Age must be a positive number")
             }
-        }
+        } 
     },
     email: {
         type: String,
         required: true,
         trim: true,
+        unique: true,
         lowercase: true,
         validator(value) {
             if (!validator.isEmail(value)) {
@@ -39,6 +41,24 @@ const userSchema = new mongoose.Schema({
     }
 })
 
+userSchema.statics.findByCredentials = async (email, password) => {
+    const user = await User.findOne({ email })
+    
+    if (!user) {
+        throw new Error('Unable to login')
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    
+    if (!isMatch) {
+        throw new Error("Unable to login")
+    }
+
+    return user
+}
+
+
+// Hash the plain text  paswword before saving
 userSchema.pre("save", async function (next) {
     const user = this
 
